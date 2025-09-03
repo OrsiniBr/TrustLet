@@ -5,7 +5,7 @@ export const axiosInstance = axios.create({
   baseURL:
     import.meta.env.MODE === "development"
       ? "https://trust-let-w48r.vercel.app/"
-      : "https://trust-let-blxr.vercel.app/api",
+      : "https://trust-let-w48r.vercel.app/api",
 
   withCredentials: true,
 });
