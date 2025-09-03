@@ -21,7 +21,10 @@ app.use(cookieParser());
 app.use(
   cors({
     // origin: "http://localhost:5173",
-    origin: "https://trust-let.vercel.app",
+    origin: [
+      "http://localhost:5173",
+      "https://trust-let.vercel.app", // Your frontend domain
+    ],
     credentials: true,
   })
 );
