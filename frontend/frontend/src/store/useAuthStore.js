@@ -5,8 +5,8 @@ import { io } from "socket.io-client";
 
 const BASE_URL =
   import.meta.env.MODE === "development"
-    ? "http://localhost:5001"
-    : "https://trust-let-blxr.vercel.app/";
+    ? "https://trust-let-w48r.vercel.app"
+    : "https://trust-let-w48r.vercel.app";
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
