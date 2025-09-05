@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.env
+
+// {
+//   "name": "e-commerce",
+//   "version": "1.0.0",
+//   "main": "backend/server.js",
+//   "scripts": {
+//     "test": "echo \"Error: no test specified\" && exit 1",
+//     "dev": "nodemon backend/server.js",
+//     "start": "node backend/server.js",
+//     "build": "npm install && npm install --prefix frontend && npm run build --prefix frontend"
+//   }   
+// }
