@@ -1,24 +1,33 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18;
+//SPDX-License-Identifier: UNLICENSED
 
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+pragma solidity 0.8.26;
 
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 library PriceConverter {
-
-       function getPrice() internal view returns (uint256){
-        //0x694AA1769357215DE4FAC081bf1f309aDC325306
+    
+    function getPrice() internal view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306);
-        (, int256 price, , ,) = priceFeed.latestRoundData();
+        (, int256 price, , , ) = priceFeed.latestRoundData();
         return uint256(price * 1e10);
     }
-    function getConversionRate (uint256 ethAmount) internal view returns (uint256){
+
+    function getConversionRate(uint256 ethAmount) internal view returns (uint256) {
         uint256 ethPrice = getPrice();
-        uint256 ethAmountInUsd = (ethAmount * ethPrice) / 1e18;
+        uint256 ethAmountInUsd = (ethPrice * ethAmount) / 1e18;
         return ethAmountInUsd;
     }
 
-    function getVersion() internal view returns(uint256){
-        return AggregatorV3Interface(0x694AA1769357215DE4FAC081bf1f309aDC325306).version();
+    function convertUsdToEth(uint256 usdAmount) internal view returns (uint256) {
+        uint256 ethPrice = getPrice();
+        uint256 ethAmount = (usdAmount * 1e18) / ethPrice;
+        return ethAmount;
+    }
+
+    function convertEthToUsd(uint256 ethAmount) internal view returns (uint256) {
+        uint256 ethPrice = getPrice();
+        uint256 usdAmount = (ethAmount * ethPrice) / 1e18;
+        return usdAmount;
+
     }
 }
