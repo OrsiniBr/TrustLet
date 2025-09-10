@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "bun install --prefix server && bun install --prefix client && bun run build --prefix client",
-    "start": "bun run start --prefix server"
+    "build": "npm install --prefix server && npm install --prefix client && npm run build --prefix client",
+    "start": "npm run start --prefix server"
   },
   "keywords": [],
   "author": "",
