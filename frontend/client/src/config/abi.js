@@ -1,6 +1,6 @@
-CHAT_ADDRESS = "0xd481c10381cc179aeae13dbe0ab36e97b4d49bdd";
+export const CHAT_ADDRESS = "0x8886616de3E1fA7eDaBe8B1aB4e0F1A652D78A7C";
 
-CHAT_ABI = [
+export const CHAT_ABI = [
   {
     inputs: [
       {
@@ -205,6 +205,19 @@ CHAT_ABI = [
   },
   {
     inputs: [],
+    name: "getRequiredStakeAmount",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
     name: "owner",
     outputs: [
       {
@@ -261,4 +274,4 @@ CHAT_ABI = [
     stateMutability: "view",
     type: "function",
   },
-];
+]; ;

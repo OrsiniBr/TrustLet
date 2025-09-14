@@ -1,19 +1,34 @@
 import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { DollarSign, Lock } from "lucide-react";
+import useStake from "../hooks/useStake";
+import { useState } from "react";
 
 const DepositPrompt = ({ selectedUser }) => {
   const { makeDeposit, hasDeposited } = useChatStore();
   const { authUser } = useAuthStore();
+  const stake = useStake();
+  const [isStaking, setIsStaking] = useState(false);
   const chatId = selectedUser._id;
 
-  const handleDeposit = () => {
-    makeDeposit(chatId);
+  const handleStake = async () => {
+    if (hasDeposited(chatId)) {
+      return; 
+    }
+    if (isStaking) return;
+    setIsStaking(true);
+
+    try {
+      await stake();
+      makeDeposit(chatId);
+    } catch (error) {
+      console.error("Staking failed:", error);
+    } finally {
+      setIsStaking(false);
+    }
   };
 
-  if (hasDeposited(chatId)) {
-    return null;
-  }
+ 
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
@@ -39,7 +54,7 @@ const DepositPrompt = ({ selectedUser }) => {
         </div>
 
         <button
-          onClick={handleDeposit}
+          onClick={handleStake}
           className="btn btn-primary w-full"
         >
           <DollarSign className="w-4 h-4 mr-2" />
