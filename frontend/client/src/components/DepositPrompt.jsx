@@ -19,8 +19,8 @@ const DepositPrompt = ({ selectedUser }) => {
     setIsStaking(true);
 
     try {
-      await stake();
-      await makeDeposit(chatId);
+      await stake(chatId); // Pass chatId to stake function
+      // makeDeposit is now called automatically in useStake after on-chain confirmation
     } catch (error) {
       console.error("Staking failed:", error);
     } finally {

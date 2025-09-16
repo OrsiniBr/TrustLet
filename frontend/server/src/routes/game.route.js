@@ -6,6 +6,7 @@ import {
   markDeposited,
   onReplyStopRound,
   startRoundIfNeeded,
+  triggerCompensation,
 } from "../controllers/game.controller.js";
 
 const router = express.Router();
@@ -15,5 +16,6 @@ router.post("/deposit/:peerId", protectRoute, markDeposited);
 router.post("/start/:peerId", protectRoute, startRoundIfNeeded);
 router.post("/reply/:peerId", protectRoute, onReplyStopRound);
 router.post("/expire/:peerId", protectRoute, expireAndSetWinner);
+router.post("/compensate/:peerId", protectRoute, triggerCompensation);
 
 export default router;

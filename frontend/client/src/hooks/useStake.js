@@ -1,6 +1,12 @@
 import { useCallback } from "react";
-import { useAccount, usePublicClient, useWalletClient, useWriteContract } from "wagmi";
+import {
+  useAccount,
+  usePublicClient,
+  useWalletClient,
+  useWriteContract,
+} from "wagmi";
 import { CHAT_ADDRESS, CHAT_ABI } from "../config/abi";
+import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 
 const useStake = () => {
@@ -9,14 +15,18 @@ const useStake = () => {
   const walletCLient = useWalletClient();
   const { writeContractAsync } = useWriteContract();
 
-  return useCallback(async () => {
-    
+  return useCallback(
+    async (peerId) => {
       if (!address || !walletCLient) {
         toast.error("Please connect your wallet");
-        return
+        return;
       }
       if (!publicClient) {
         toast.error("Public client not available");
+        return;
+      }
+      if (!walletCLient) {
+        toast.error("Wallet client not available");
         return;
       }
 
@@ -27,20 +37,29 @@ const useStake = () => {
           functionName: "stake",
         });
         console.log("Stake hash : ".stakeHash);
-        
+
         const stakeReciept = await publicClient.waitForTransactionReceipt({
-          hash:stakeHash
-        })
+          hash: stakeHash,
+        });
         if (stakeReciept.status === "success") {
-          toast.success("Chat stake successful")
+          toast.success("Chat stake successful");
+
+          // Automatically call deposit endpoint after successful on-chain confirmation
+          if (peerId) {
+            try {
+              await axiosInstance.post(`/game/deposit/${peerId}`);
+              toast.success("Deposit confirmed on server");
+            } catch (error) {
+              console.error("Failed to confirm deposit on server:", error);
+              toast.error("Stake successful but server confirmation failed");
+            }
+          }
+        } else {
+          toast.error("Chat stake failed");
         }
-        else {
-          toast.error("Chat stake failed")
-        }
-        
       } catch (error) {
         console.error("Stake error:", error);
-        
+
         if (error.message?.includes("Must send exact ether amount")) {
           toast.error("Insufficient ETH amount");
         }
@@ -48,66 +67,9 @@ const useStake = () => {
           toast.error("Transaction rejected by user");
         }
       }
-    
-      
-  }, [address, publicClient, writeContractAsync]);
-
-  // const stake = useCallback(async () => {
-  //   if (!address) {
-  //     toast.error("Please connect your wallet");
-  //     return;
-  //   }
-
-  //   try {
-  //     // Get the required ETH amount for $3 USD from the contract
-  //     const requiredEth = await publicClient.readContract({
-  //       address: CHAT_ADDRESS,
-  //       abi: CHAT_ABI,
-  //       functionName: "getRequiredStakeAmount",
-  //     });
-
-  //     const txHash = await writeContractAsync({
-  //       address: CHAT_ADDRESS,
-  //       abi: CHAT_ABI,
-  //       functionName: "stake",
-  //       value: requiredEth,
-  //     });
-
-  //     console.log("txHash: ", txHash);
-
-  //     const txReceipt = await publicClient.waitForTransactionReceipt({
-  //       hash: txHash,
-  //     });
-
-  //     if (txReceipt.status === "success") {
-  //       toast.success("Chat stake successful", {
-  //         description: "You have successfully staked for chat access",
-  //       });
-  //     } else {
-  //       toast.error("Chat stake failed", {
-  //         description: "Transaction was unsuccessful",
-  //       });
-  //     }
-  //   } catch (error) {
-  //     console.error("Stake error:", error);
-
-  //     if (error.message?.includes("Must send exact ether amount")) {
-  //       toast.error("Insufficient ETH amount");
-  //     } else if (error.message?.includes("rejected")) {
-  //       toast.error("Transaction rejected by user");
-  //     } else {
-  //       toast.error("Transaction failed", {
-  //         description: "Please try again",
-  //       });
-  //     }
-  //   }
-  // }, [address, publicClient, writeContractAsync]);
-
-  // return {
-  //   stake,
-  //   isConnected,
-  //   address,
-  // };
+    },
+    [address, publicClient, writeContractAsync]
+  );
 };
 
 export default useStake;

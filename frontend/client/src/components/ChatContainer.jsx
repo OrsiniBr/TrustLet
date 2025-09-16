@@ -5,6 +5,7 @@ import ChatHeader from "./ChatHeader";
 import MessageInput from "./MessageInput";
 import MessageSkeleton from "./skeletons/MessageSkeleton";
 import DepositPrompt from "./DepositPrompt";
+import CompensationPrompt from "./CompensationPrompt";
 import ChatTimer from "./ChatTimer";
 import { useAuthStore } from "../store/useAuthStore";
 import { formatMessageTime } from "../lib/utils";
@@ -18,6 +19,7 @@ const ChatContainer = () => {
     subscribeToMessages,
     unsubscribeFromMessages,
     hasDeposited,
+    getWinner,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef(null);
@@ -54,13 +56,16 @@ const ChatContainer = () => {
   // Check if user has deposited for this chat
   const chatId = selectedUser._id;
   const userHasDeposited = hasDeposited(chatId);
+  const winner = getWinner(chatId);
 
   return (
     <div className="flex-1 flex flex-col overflow-auto">
       <ChatHeader />
 
-      {/* Show deposit prompt if user hasn't deposited */}
-      {!userHasDeposited ? (
+      {/* Show compensation prompt if game has ended */}
+      {winner ? (
+        <CompensationPrompt selectedUser={selectedUser} />
+      ) : !userHasDeposited ? (
         <DepositPrompt selectedUser={selectedUser} />
       ) : (
         <>

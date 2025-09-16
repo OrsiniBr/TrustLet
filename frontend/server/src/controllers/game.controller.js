@@ -156,3 +156,34 @@ export const expireAndSetWinner = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const triggerCompensation = async (req, res) => {
+  try {
+    const myId = String(req.user._id);
+    const { peerId } = req.params;
+    const game = await findOrCreateGame(myId, peerId);
+
+    if (game.state !== "ended" || !game.winner) {
+      return res.status(400).json({ message: "Game not ended or no winner" });
+    }
+
+    // Emit compensation event to frontend
+    const aId = String(game.userA);
+    const bId = String(game.userB);
+    const aSock = getReceiverSocketId(aId);
+    const bSock = getReceiverSocketId(bId);
+
+    const payload = {
+      winner: String(game.winner),
+      recipient: String(game.winner),
+      snubber: String(game.winner === aId ? bId : aId),
+    };
+
+    if (aSock) io.to(aSock).emit("game:compensate", payload);
+    if (bSock) io.to(bSock).emit("game:compensate", payload);
+
+    res.json({ message: "Compensation triggered", payload });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

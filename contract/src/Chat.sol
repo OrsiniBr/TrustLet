@@ -33,60 +33,60 @@ contract Chat is ReentrancyGuard{
         owner = msg.sender;
     }
     
-    function stake() public payable nonReentrant{
-        uint256 requiredEth = stakeAmount.convertUsdToEth();
-        require(msg.value >= requiredEth, "Must send exact ether amount");
-        // Allow multiple stakes for multiple chats
-        totalStakes[msg.sender] += msg.value;
-        activeChats[msg.sender] += 1;
+    function stake() public payable nonReentrant {
+    uint256 ethPrice = PriceConverter.getPrice(); // Single call
+    uint256 requiredEth = (stakeAmount * 1e18) / ethPrice;
+    require(msg.value >= requiredEth, "Must send exact ether amount");
+    
+    totalStakes[msg.sender] += msg.value;
+    activeChats[msg.sender] += 1;
+    emit Staked(msg.sender, msg.value, activeChats[msg.sender]);
+}
 
-         emit Staked(msg.sender, msg.value, activeChats[msg.sender]);
-    }
+ function compensate(address payable recipient, address snubber) public onlyOwner nonReentrant {
+    require(activeChats[recipient] > 0, "Recipient has no active chats");
+    require(activeChats[snubber] > 0, "Snubber has no active chats");
+    
+    uint256 ethPrice = PriceConverter.getPrice();
+    uint256 stakeEth = (stakeAmount * 1e18) / ethPrice;
+    uint256 feeEth = (contractFee * 1e18) / ethPrice;
+    
+    require(totalStakes[recipient] >= stakeEth, "Recipient insufficient stake");
+    require(totalStakes[snubber] >= stakeEth, "Snubber insufficient stake");
+    
+    uint256 compensationEth = (stakeEth * 2) - feeEth;
+    
+    totalStakes[recipient] -= stakeEth;
+    totalStakes[snubber] -= stakeEth;
+    activeChats[recipient] -= 1;
+    activeChats[snubber] -= 1;
+    
+    contractProfit += feeEth;
 
-    // Victim gets $5, contract keeps $1 profit
-    function compensate(address payable recipient, address snubber) public onlyOwner nonReentrant{
-        require(activeChats[recipient] > 0, "Recipient has no active chats");
-        require(activeChats[snubber] > 0, "Snubber has no active chats");
-        
-        uint256 stakeEth = stakeAmount.convertUsdToEth();
-        require(totalStakes[recipient] >= stakeEth, "Recipient insufficient stake");
-        require(totalStakes[snubber] >= stakeEth, "Snubber insufficient stake");
-        
-        // Calculate compensation: $6 total stakes - $1 contract fee = $5 for victim
-        uint256 feeEth = contractFee.convertUsdToEth();
-        uint256 compensationEth = (stakeEth * 2) - feeEth;
-        
-        // Deduct stakes from both parties
-        totalStakes[recipient] -= stakeEth;
-        totalStakes[snubber] -= stakeEth;
-        activeChats[recipient] -= 1;
-        activeChats[snubber] -= 1;
-        
-         contractProfit += feeEth;
+    emit Compensated(recipient, snubber, compensationEth, feeEth);
+    recipient.transfer(compensationEth);
+}
 
-        // Victim gets $5 compensation, contract automatically keeps $1
-         emit Compensated(recipient, snubber, compensationEth, feeEth);
-        recipient.transfer(compensationEth);
-
-    }
-
-    function refund(address payable recipient) public onlyOwner nonReentrant{
+    function refund(address payable recipient) public onlyOwner nonReentrant {
         require(activeChats[recipient] > 0, "No active chats to refund");
         
-        uint256 stakeEth = stakeAmount.convertUsdToEth();
+        uint256 ethPrice = PriceConverter.getPrice();
+        uint256 stakeEth = (stakeAmount * 1e18) / ethPrice;
+        uint256 refundEth = (refundAmount * 1e18) / ethPrice; 
+        
         require(totalStakes[recipient] >= stakeEth, "Insufficient stake");
         
-        uint256 refundEth = refundAmount.convertUsdToEth();
-        
-        // Deduct stake and reduce active chats
         totalStakes[recipient] -= stakeEth;
         activeChats[recipient] -= 1;
         
-        // Give partial refund ($2), contract keeps $1
-          emit Refunded(recipient, refundEth);
+        emit Refunded(recipient, refundEth);
         recipient.transfer(refundEth);
     }
     
+    receive() external payable nonReentrant {}
+
+    fallback() external payable {}
+
     function getContractBalance() public view returns (uint256) {
         uint256 balance = address(this).balance;
         return balance.convertEthToUsd();

@@ -184,6 +184,18 @@ export const useChatStore = create((set, get) => ({
         winner === me ? "Time's up! You won!" : "Time's up! Opponent won!"
       );
     });
+
+    socket.on("game:compensate", ({ winner, recipient, snubber }) => {
+      const chatId = selectedUser._id;
+      const me = useAuthStore.getState().authUser?._id;
+
+      // Show compensation notification
+      if (winner === me) {
+        toast.success("You won! Compensation will be processed.");
+      } else {
+        toast.info("Game ended. Winner will receive compensation.");
+      }
+    });
   },
 
   unsubscribeFromMessages: () => {
@@ -192,6 +204,7 @@ export const useChatStore = create((set, get) => ({
     socket.off("game:timer:start");
     socket.off("game:timer:stop");
     socket.off("game:ended");
+    socket.off("game:compensate");
   },
 
   setSelectedUser: async (selectedUser) => {
