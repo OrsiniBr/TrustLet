@@ -1,13 +1,22 @@
 {
-  "name": "chat-app",
+  "name": "gladen-chat-app",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Chat DApp with staking mechanism",
+  "main": "server/src/index.js",
   "scripts": {
     "build": "npm install --prefix server && npm install --prefix client && npm run build --prefix client",
-    "start": "npm run start --prefix server"
+    "start": "npm run start --prefix server",
+    "dev": "npm run dev --prefix server"
   },
-  "keywords": [],
+  "keywords": [
+    "chat",
+    "dapp",
+    "staking",
+    "blockchain"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
