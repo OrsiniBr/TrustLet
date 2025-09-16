@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import fs from "fs";
 
 import path from "path";
 
@@ -22,7 +23,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
     credentials: true,
   })
 );
@@ -32,10 +33,17 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/game", gameRoutes);
 
 if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../client/dist")));
+  const staticPath = path.join(__dirname, "../../client/dist");
+  console.log("Static path:", staticPath);
+  console.log("Static path exists:", fs.existsSync(staticPath));
+  
+  app.use(express.static(staticPath));
 
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../client", "dist", "index.html"));
+    const indexPath = path.join(__dirname, "../../client", "dist", "index.html");
+    console.log("Index path:", indexPath);
+    console.log("Index path exists:", fs.existsSync(indexPath));
+    res.sendFile(indexPath);
   });
 }
 
