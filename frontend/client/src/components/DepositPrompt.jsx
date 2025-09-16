@@ -13,22 +13,20 @@ const DepositPrompt = ({ selectedUser }) => {
 
   const handleStake = async () => {
     if (hasDeposited(chatId)) {
-      return; 
+      return;
     }
     if (isStaking) return;
     setIsStaking(true);
 
     try {
       await stake();
-      makeDeposit(chatId);
+      await makeDeposit(chatId);
     } catch (error) {
       console.error("Staking failed:", error);
     } finally {
       setIsStaking(false);
     }
   };
-
- 
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
@@ -39,7 +37,8 @@ const DepositPrompt = ({ selectedUser }) => {
           </div>
           <h3 className="text-xl font-semibold mb-2">Deposit Required</h3>
           <p className="text-base-content/70">
-            To start chatting with {selectedUser.fullName}, you need to deposit $5 first.
+            To start chatting with {selectedUser.fullName}, you need to deposit
+            $5 first.
           </p>
         </div>
 
@@ -53,10 +52,7 @@ const DepositPrompt = ({ selectedUser }) => {
           </p>
         </div>
 
-        <button
-          onClick={handleStake}
-          className="btn btn-primary w-full"
-        >
+        <button onClick={handleStake} className="btn btn-primary w-full">
           <DollarSign className="w-4 h-4 mr-2" />
           Deposit $5
         </button>
