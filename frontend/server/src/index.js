@@ -33,14 +33,14 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/game", gameRoutes);
 
 if (process.env.NODE_ENV === "production") {
-  const staticPath = path.join(__dirname, "../frontend/client/dist");
+  const staticPath = path.join(__dirname, "../../client/dist");
   console.log("Static path:", staticPath);
   console.log("Static path exists:", fs.existsSync(staticPath));
 
   app.use(express.static(staticPath));
 
   app.get("*", (req, res) => {
-    const indexPath = path.join(__dirname, "../../client", "dist", "index.html");
+    const indexPath = path.join(__dirname, "../frontend/client", "dist", "index.html");
     console.log("Index path:", indexPath);
     console.log("Index path exists:", fs.existsSync(indexPath));
     res.sendFile(indexPath);
