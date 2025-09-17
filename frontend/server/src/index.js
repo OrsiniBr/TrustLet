@@ -36,7 +36,7 @@ if (process.env.NODE_ENV === "production") {
   const staticPath = path.join(__dirname, "../../client/dist");
   console.log("Static path:", staticPath);
   console.log("Static path exists:", fs.existsSync(staticPath));
-  
+
   app.use(express.static(staticPath));
 
   app.get("*", (req, res) => {
