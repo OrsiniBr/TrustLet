@@ -40,7 +40,7 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(staticPath));
 
   app.get("*", (req, res) => {
-    const indexPath = path.join(__dirname, "../frontend/client", "dist", "index.html");
+    const indexPath = path.join(__dirname, "../../client", "dist", "index.html");
     console.log("Index path:", indexPath);
     console.log("Index path exists:", fs.existsSync(indexPath));
     res.sendFile(indexPath);
