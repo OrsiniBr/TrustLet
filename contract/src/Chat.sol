@@ -1,102 +1,109 @@
 //SPDX-License-Identifier: UNLICENSED
 
-pragma solidity 0.8.26;
+pragma solidity ^0.8.0;
 
-import {PriceConverter} from "./PriceConverter.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Chat is ReentrancyGuard{
-    event Staked(address indexed user, uint256 ethAmount, uint256 activeChats);
-    event Compensated(address indexed recipient, address indexed snubber, uint256 compensationAmount, uint256 contractFee);
+contract Chat is ReentrancyGuard, Ownable, Pausable {
+    using SafeERC20 for IERC20;
+
+    IERC20 public constant chatToken = IERC20(0x69d217D74dA1Ac1f05485BB2729025f693527081);
+
+    event Staked(address indexed user, uint256 tokenAmount, uint256 activeChats);
+    event Compensated(
+        address indexed recipient, address indexed snubber, uint256 compensationAmount, uint256 contractFee
+    );
     event Refunded(address indexed recipient, uint256 refundAmount);
     event ProfitWithdrawn(address indexed owner, uint256 amount);
 
-    using PriceConverter for uint256;
-
-    uint256 public constant stakeAmount = 3; // $3 USD
-    uint256 public constant contractFee = 1; // $1 USD
-    uint256 public constant refundAmount = 3; // $3 USD
+    uint256 public constant stakeAmount = 3 * 1e18; // $3 worth of tokens
+    uint256 public constant compensateAmount = 5 * 1e18; // $5 worth of tokens
+    uint256 public constant contractFee = 1 * 1e18; // $1 worth of tokens
+    uint256 public constant refundAmount = 3 * 1e18; // $3 worth of tokens
     uint256 public contractProfit;
-    
-    // Use EITHER single-chat OR multi-chat mappings, not both
-    mapping(address => uint256) public totalStakes;  // For multi-chat
-    mapping(address => uint256) public activeChats; // For multi-chat
-    
-    address public owner;
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this");
-        _;
+
+    // Multi-chat mappings
+    mapping(address => uint256) public totalStakes;
+    mapping(address => uint256) public activeChats;
+
+    constructor() Ownable(msg.sender) {}
+
+    function stake() public nonReentrant whenNotPaused {
+        totalStakes[msg.sender] += stakeAmount;
+        activeChats[msg.sender] += 1;
+
+        // Transfer tokens FROM user TO contract
+        chatToken.safeTransferFrom(msg.sender, address(this), stakeAmount);
+
+        emit Staked(msg.sender, stakeAmount, activeChats[msg.sender]);
     }
-    
-    constructor() {
-        owner = msg.sender;
-    }
-    
-    function stake() public payable nonReentrant {
-    uint256 ethPrice = PriceConverter.getPrice(); // Single call
-    uint256 requiredEth = (stakeAmount * 1e18) / ethPrice;
-    require(msg.value >= requiredEth, "Must send exact ether amount");
-    
-    totalStakes[msg.sender] += msg.value;
-    activeChats[msg.sender] += 1;
-    emit Staked(msg.sender, msg.value, activeChats[msg.sender]);
-}
 
- function compensate(address payable recipient, address snubber) public onlyOwner nonReentrant {
-    require(activeChats[recipient] > 0, "Recipient has no active chats");
-    require(activeChats[snubber] > 0, "Snubber has no active chats");
-    
-    uint256 ethPrice = PriceConverter.getPrice();
-    uint256 stakeEth = (stakeAmount * 1e18) / ethPrice;
-    uint256 feeEth = (contractFee * 1e18) / ethPrice;
-    
-    require(totalStakes[recipient] >= stakeEth, "Recipient insufficient stake");
-    require(totalStakes[snubber] >= stakeEth, "Snubber insufficient stake");
-    
-    uint256 compensationEth = (stakeEth * 2) - feeEth;
-    
-    totalStakes[recipient] -= stakeEth;
-    totalStakes[snubber] -= stakeEth;
-    activeChats[recipient] -= 1;
-    activeChats[snubber] -= 1;
-    
-    contractProfit += feeEth;
+    function compensate(address recipient, address snubber) public onlyOwner nonReentrant {
+        require(activeChats[recipient] > 0, "Recipient has no active chats");
+        require(activeChats[snubber] > 0, "Snubber has no active chats");
+        require(totalStakes[recipient] >= stakeAmount, "Recipient insufficient stake");
+        require(totalStakes[snubber] >= stakeAmount, "Snubber insufficient stake");
 
-    emit Compensated(recipient, snubber, compensationEth, feeEth);
-    recipient.transfer(compensationEth);
-}
-
-    function refund(address payable recipient) public onlyOwner nonReentrant {
-        require(activeChats[recipient] > 0, "No active chats to refund");
-        
-        uint256 ethPrice = PriceConverter.getPrice();
-        uint256 stakeEth = (stakeAmount * 1e18) / ethPrice;
-        uint256 refundEth = (refundAmount * 1e18) / ethPrice; 
-        
-        require(totalStakes[recipient] >= stakeEth, "Insufficient stake");
-        
-        totalStakes[recipient] -= stakeEth;
+        // Deduct stakes
+        totalStakes[recipient] -= stakeAmount;
+        totalStakes[snubber] -= stakeAmount;
         activeChats[recipient] -= 1;
-        
-        emit Refunded(recipient, refundEth);
-        recipient.transfer(refundEth);
-    }
-    
-    receive() external payable nonReentrant {}
+        activeChats[snubber] -= 1;
 
-    fallback() external payable {}
+        // Add to contract profit
+        contractProfit += contractFee;
+
+        // Transfer compensation to recipient (from contract balance)
+        chatToken.safeTransfer(recipient, compensateAmount);
+
+        emit Compensated(recipient, snubber, compensateAmount, contractFee);
+    }
+
+    function refund(address recipient) public onlyOwner nonReentrant {
+        require(totalStakes[recipient] >= stakeAmount, "Recipient insufficient stake");
+        require(activeChats[recipient] > 0, "Recipient has no active chats");
+
+        // Deduct stake
+        totalStakes[recipient] -= stakeAmount;
+        activeChats[recipient] -= 1;
+
+        // Refund to recipient
+        chatToken.safeTransfer(recipient, refundAmount);
+
+        emit Refunded(recipient, refundAmount);
+    }
 
     function getContractBalance() public view returns (uint256) {
-        uint256 balance = address(this).balance;
-        return balance.convertEthToUsd();
+        return chatToken.balanceOf(address(this));
     }
 
-    function withdrawContractProfit() public onlyOwner {
+    function withdrawContractProfit() public onlyOwner nonReentrant {
         require(contractProfit > 0, "No profits to withdraw");
         uint256 amount = contractProfit;
         contractProfit = 0;
-        payable(owner).transfer(amount);
-        emit ProfitWithdrawn(owner, amount);
+        
+        // Transfer FROM contract TO owner
+        chatToken.safeTransfer(msg.sender, amount);
+        
+        emit ProfitWithdrawn(msg.sender, amount);
+    }
+
+    // Admin functions
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
+    }
+
+    // Emergency withdrawal function
+    function emergencyWithdraw(uint256 amount) public onlyOwner {
+        require(amount <= chatToken.balanceOf(address(this)), "Insufficient balance");
+        chatToken.safeTransfer(msg.sender, amount);
     }
 }
