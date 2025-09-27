@@ -13,9 +13,9 @@ contract Chat is ReentrancyGuard, Ownable, Pausable {
 
     IERC20 public constant chatToken = IERC20(0x69d217D74dA1Ac1f05485BB2729025f693527081);
 
-    event Staked(address indexed user, uint256 tokenAmount, uint256 activeChats);
+    event Staked(address indexed user, uint256 tokenAmount);
     event Compensated(
-        address indexed recipient, address indexed snubber, uint256 compensationAmount, uint256 contractFee
+        address indexed recipient, uint256 compensationAmount, uint256 contractFee
     );
     event Refunded(address indexed recipient, uint256 refundAmount);
     event ProfitWithdrawn(address indexed owner, uint256 amount);
@@ -23,58 +23,38 @@ contract Chat is ReentrancyGuard, Ownable, Pausable {
     uint256 public constant stakeAmount = 3 * 1e18; // $3 worth of tokens
     uint256 public constant compensateAmount = 5 * 1e18; // $5 worth of tokens
     uint256 public constant contractFee = 1 * 1e18; // $1 worth of tokens
-    uint256 public constant refundAmount = 3 * 1e18; // $3 worth of tokens
     uint256 public contractProfit;
 
     // Multi-chat mappings
-    mapping(address => uint256) public totalStakes;
-    mapping(address => uint256) public activeChats;
+    // mapping(address => uint256) public totalStakes;
+    // mapping(address => uint256) public activeChats;
 
     constructor() Ownable(msg.sender) {}
 
     function stake() public nonReentrant whenNotPaused {
-        totalStakes[msg.sender] += stakeAmount;
-        activeChats[msg.sender] += 1;
-
         // Transfer tokens FROM user TO contract
         chatToken.safeTransferFrom(msg.sender, address(this), stakeAmount);
 
-        emit Staked(msg.sender, stakeAmount, activeChats[msg.sender]);
+        emit Staked(msg.sender, stakeAmount);
     }
 
-    function compensate(address recipient, address snubber) public onlyOwner nonReentrant {
-        require(activeChats[recipient] > 0, "Recipient has no active chats");
-        require(activeChats[snubber] > 0, "Snubber has no active chats");
-        require(totalStakes[recipient] >= stakeAmount, "Recipient insufficient stake");
-        require(totalStakes[snubber] >= stakeAmount, "Snubber insufficient stake");
-
-        // Deduct stakes
-        totalStakes[recipient] -= stakeAmount;
-        totalStakes[snubber] -= stakeAmount;
-        activeChats[recipient] -= 1;
-        activeChats[snubber] -= 1;
-
+    function compensate(address recipient) public onlyOwner nonReentrant {
+     
         // Add to contract profit
         contractProfit += contractFee;
 
         // Transfer compensation to recipient (from contract balance)
         chatToken.safeTransfer(recipient, compensateAmount);
 
-        emit Compensated(recipient, snubber, compensateAmount, contractFee);
+        emit Compensated(recipient,compensateAmount, contractFee);
     }
 
     function refund(address recipient) public onlyOwner nonReentrant {
-        require(totalStakes[recipient] >= stakeAmount, "Recipient insufficient stake");
-        require(activeChats[recipient] > 0, "Recipient has no active chats");
-
-        // Deduct stake
-        totalStakes[recipient] -= stakeAmount;
-        activeChats[recipient] -= 1;
-
+      
         // Refund to recipient
-        chatToken.safeTransfer(recipient, refundAmount);
+        chatToken.safeTransfer(recipient, stakeAmount);
 
-        emit Refunded(recipient, refundAmount);
+        emit Refunded(recipient, stakeAmount);
     }
 
     function getContractBalance() public view returns (uint256) {
