@@ -5,7 +5,7 @@ import {
   useWalletClient,
   useWriteContract,
 } from "wagmi";
-import { CHAT_ADDRESS, CHAT_ABI } from "../config/abi";
+import {CHAT_ABI } from "../config/abi";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 
@@ -17,6 +17,8 @@ const useStake = () => {
 
   return useCallback(
     async (peerId) => {
+               const CHAT_ADDRESS = import.meta.env.VITE_CHAT_CONTRACT_ADDRESS;
+
       if (!address || !walletCLient) {
         toast.error("Please connect your wallet");
         return;
@@ -29,6 +31,12 @@ const useStake = () => {
         toast.error("Wallet client not available");
         return;
       }
+      if (!CHAT_ADDRESS) {
+        toast.error("Contract address not set");
+        return;
+      }
+
+
 
       try {
         const stakeHash = await writeContractAsync({

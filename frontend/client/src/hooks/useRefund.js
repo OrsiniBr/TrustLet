@@ -5,7 +5,7 @@ import {
   useWalletClient,
   useWriteContract,
 } from "wagmi";
-import { CHAT_ADDRESS, CHAT_ABI } from "../config/abi";
+import { CHAT_ABI } from "../config/abi";
 import toast from "react-hot-toast";
 
 const useRefund = () => {
@@ -13,6 +13,9 @@ const useRefund = () => {
   const publicClient = usePublicClient();
   const walletClient = useWalletClient();
   const { writeContractAsync } = useWriteContract();
+
+   const CHAT_ADDRESS = import.meta.env.CHAT_CONTRACT_ADDRESS;
+  //  const tokenAddress = import.meta.env.TOKEN_ADDRESS;
 
   return useCallback(
     async (recipientData) => {

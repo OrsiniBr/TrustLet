@@ -2,13 +2,19 @@ import { useChatStore } from "../store/useChatStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { DollarSign, Lock } from "lucide-react";
 import useStake from "../hooks/useStake";
+import { useApprove } from "../hooks/useApprove";
 import { useState } from "react";
+import { toast } from "sonner";
+
 
 const DepositPrompt = ({ selectedUser }) => {
   const { makeDeposit, hasDeposited } = useChatStore();
   const { authUser } = useAuthStore();
   const stake = useStake();
+  const approve = useApprove();
+  const [amountApproved, setAmountApproved] = useState("");
   const [isStaking, setIsStaking] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
   const chatId = selectedUser._id;
 
   const handleStake = async () => {
@@ -25,6 +31,31 @@ const DepositPrompt = ({ selectedUser }) => {
       console.error("Staking failed:", error);
     } finally {
       setIsStaking(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    const amount = parseFloat(amountApproved);
+    
+    if (!amountApproved || amount <= 0 || isNaN(amount)) {
+      alert("Please enter a valid amount greater than 0");
+      return;
+    }
+
+    if (isApproving) return;
+    setIsApproving(true);
+
+    try {
+      await approve(amount);
+      toast.success("Approval successful!", {
+        description: `${amount} tokens approved for spending`
+      });
+      setAmountApproved(""); // Clear input after successful approval
+    } catch (error) {
+      console.error("Approval failed:", error);
+      alert("Approval failed. Please try again.");
+    } finally {
+      setIsApproving(false);
     }
   };
 
@@ -52,9 +83,52 @@ const DepositPrompt = ({ selectedUser }) => {
           </p>
         </div>
 
-        <button onClick={handleStake} className="btn btn-primary w-full">
-          <DollarSign className="w-4 h-4 mr-2" />
-          Deposit $5
+        {/* Approval Section */}
+        <div className="mb-4">
+          <input
+            type="number"
+            placeholder="Enter amount to approve"
+            className="input input-bordered w-full mb-3"
+            value={amountApproved}
+            onChange={(e) => setAmountApproved(e.target.value)}
+            min="0"
+            step="0.01"
+          />
+          <button
+            onClick={handleApprove}
+            disabled={isApproving || !amountApproved}
+            className={`btn w-full mb-4 ${
+              isApproving ? "btn-disabled" : "btn-secondary"
+            }`}
+          >
+            {isApproving ? (
+              <>
+                <span className="loading loading-spinner loading-sm"></span>
+                Approving...
+              </>
+            ) : (
+              "Approve Token Spending"
+            )}
+          </button>
+        </div>
+
+        {/* Deposit Section */}
+        <button 
+          onClick={handleStake} 
+          disabled={isStaking}
+          className={`btn w-full ${isStaking ? "btn-disabled" : "btn-primary"}`}
+        >
+          {isStaking ? (
+            <>
+              <span className="loading loading-spinner loading-sm"></span>
+              Processing...
+            </>
+          ) : (
+            <>
+              <DollarSign className="w-4 h-4 mr-2" />
+              Deposit $5
+            </>
+          )}
         </button>
 
         <p className="text-xs text-base-content/50 mt-4">
