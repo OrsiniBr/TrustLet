@@ -82,6 +82,10 @@ export const sendMessage = async (req, res) => {
         game.startedBy = String(senderId);
         game.startedAt = now;
         game.expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+        // Clear refund timer when game starts
+        game.refundTimerStartedBy = undefined;
+        game.refundTimerStartedAt = undefined;
+        game.refundTimerExpiresAt = undefined;
         await game.save();
 
         const payload = {
@@ -108,6 +112,29 @@ export const sendMessage = async (req, res) => {
           if (aSock) io.to(aSock).emit("game:timer:stop", {});
           if (bSock) io.to(bSock).emit("game:timer:stop", {});
         }
+      }
+    } else {
+      // Only one person has deposited - start refund timer if not already started
+      const senderDeposited = game.deposits.get(String(senderId));
+      const receiverDeposited = game.deposits.get(String(receiverId));
+
+      if (senderDeposited && !receiverDeposited && !game.refundTimerExpiresAt) {
+        // Start refund timer - give recipient 5 minutes to stake back
+        game.refundTimerStartedBy = String(senderId);
+        game.refundTimerStartedAt = now;
+        game.refundTimerExpiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+        await game.save();
+
+        // Notify both users about refund timer
+        const payload = {
+          startedBy: String(senderId),
+          expiresAt: game.refundTimerExpiresAt.toISOString(),
+          type: "refund",
+        };
+        const aSock = getReceiverSocketId(String(a));
+        const bSock = getReceiverSocketId(String(b));
+        if (aSock) io.to(aSock).emit("refund:timer:start", payload);
+        if (bSock) io.to(bSock).emit("refund:timer:start", payload);
       }
     }
 

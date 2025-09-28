@@ -27,6 +27,10 @@ const chatGameSchema = new mongoose.Schema(
       default: "idle",
     },
     winner: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    // Refund timer fields - when someone stakes and chats but recipient doesn't stake back
+    refundTimerStartedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    refundTimerStartedAt: { type: Date },
+    refundTimerExpiresAt: { type: Date },
   },
   { timestamps: true }
 );

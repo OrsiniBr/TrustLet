@@ -9,7 +9,7 @@ import { CHAT_ABI } from "../config/abi";
 import toast from "react-hot-toast";
 
 const useRefund = () => {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const publicClient = usePublicClient();
   const walletClient = useWalletClient();
   const { writeContractAsync } = useWriteContract();
@@ -18,7 +18,7 @@ const useRefund = () => {
   //  const tokenAddress = import.meta.env.TOKEN_ADDRESS;
 
   return useCallback(
-    async (recipientData) => {
+    async () => {
       if (!address || !walletClient) {
         toast.error("Please connect your wallet");
         return { success: false };
@@ -34,25 +34,8 @@ const useRefund = () => {
         return { success: false };
       }
 
-      if (!recipientData) {
-        toast.error("Recipient data is required");
-        return { success: false };
-      }
 
-      // Get recipient address from the data
-      const recipientAddress =
-        recipientData.walletAddress || recipientData.user?.walletAddress;
-
-      if (!recipientAddress) {
-        toast.error("Could not determine recipient address");
-        return { success: false };
-      }
-
-      // Validate address format
-      if (!/^0x[a-fA-F0-9]{40}$/.test(recipientAddress)) {
-        toast.error("Invalid address format");
-        return { success: false };
-      }
+      const recipientAddress = address;
 
       try {
         toast.loading("Processing refund...", { id: "refund" });
@@ -61,7 +44,7 @@ const useRefund = () => {
           address: CHAT_ADDRESS,
           abi: CHAT_ABI,
           functionName: "refund",
-          args: [recipientAddress],
+          args: [address],
         });
 
         console.log("Refund hash:", refundHash);
@@ -120,24 +103,24 @@ const useRefund = () => {
 };
 
 // In your component
-const refund = useRefund();
+// const refund = useRefund();
 
-const handleRefundUser = async (userData) => {
-  const recipientData = {
-    walletAddress: "0x123...",
-    // or
-    user: {
-      walletAddress: "0x123..."
-    }
-  };
+// const handleRefundUser = async (userData) => {
+//   const recipientData = {
+//     walletAddress: "0x123...",
+//     // or
+//     user: {
+//       walletAddress: "0x123..."
+//     }
+//   };
 
-  const result = await refund(recipientData);
+//   const result = await refund(recipientData);
   
-  if (result.success) {
-    console.log("Refund TX:", result.txHash);
-    console.log("Refunded to:", result.recipientAddress);
-    // Update UI, notify backend, etc.
-  }
-};
+//   if (result.success) {
+//     console.log("Refund TX:", result.txHash);
+//     console.log("Refunded to:", result.recipientAddress);
+//     // Update UI, notify backend, etc.
+//   }
+// };
 
 export default useRefund;

@@ -11,6 +11,7 @@ export const useChatStore = create((set, get) => ({
   isMessagesLoading: false,
   deposits: {}, // { [peerId]: boolean } whether current user deposited for chat with peer
   timers: {}, // { [peerId]: { startedAt, expiresAt, startedBy } } server-authoritative
+  refundTimers: {}, // { [peerId]: { startedAt, expiresAt, startedBy } } for refund scenarios
   winners: {}, // Track winners for each chat
 
   // Check if user has deposited for a specific chat
@@ -40,6 +41,15 @@ export const useChatStore = create((set, get) => ({
   getRemainingTime: (chatId) => {
     const { timers } = get();
     const timer = timers[chatId];
+    if (!timer || !timer.expiresAt) return 0;
+    const remaining = new Date(timer.expiresAt).getTime() - Date.now();
+    return Math.max(0, Math.ceil(remaining / 1000));
+  },
+
+  // Get remaining time for refund timer
+  getRefundRemainingTime: (chatId) => {
+    const { refundTimers } = get();
+    const timer = refundTimers[chatId];
     if (!timer || !timer.expiresAt) return 0;
     const remaining = new Date(timer.expiresAt).getTime() - Date.now();
     return Math.max(0, Math.ceil(remaining / 1000));
@@ -98,11 +108,24 @@ export const useChatStore = create((set, get) => ({
       } else {
         timers[peerId] = null;
       }
+
+      const refundTimers = { ...get().refundTimers };
+      if (res.data?.refundTimerExpiresAt) {
+        refundTimers[peerId] = {
+          startedAt: res.data.refundTimerStartedAt,
+          expiresAt: res.data.refundTimerExpiresAt,
+          startedBy: res.data.refundTimerStartedBy,
+        };
+      } else {
+        refundTimers[peerId] = null;
+      }
+
       const winners = { ...get().winners };
       if (res.data?.winner) winners[peerId] = res.data.winner;
       set({
         deposits: { ...get().deposits, [peerId]: deposited },
         timers,
+        refundTimers,
         winners,
       });
     } catch (e) {
@@ -196,6 +219,28 @@ export const useChatStore = create((set, get) => ({
         toast.info("Game ended. Winner will receive compensation.");
       }
     });
+
+    // Refund timer events
+    socket.on("refund:timer:start", (payload) => {
+      const chatId = selectedUser._id;
+      const refundTimers = { ...get().refundTimers };
+      refundTimers[chatId] = {
+        startedAt: payload.startedAt,
+        expiresAt: payload.expiresAt,
+        startedBy: payload.startedBy,
+      };
+      set({ refundTimers });
+    });
+
+    socket.on("refund:available", (payload) => {
+      const chatId = selectedUser._id;
+      const refundTimers = { ...get().refundTimers };
+      refundTimers[chatId] = null;
+      set({ refundTimers });
+      toast.info(
+        "Refund is now available! Recipient didn't stake back within 5 minutes."
+      );
+    });
   },
 
   unsubscribeFromMessages: () => {
@@ -205,6 +250,8 @@ export const useChatStore = create((set, get) => ({
     socket.off("game:timer:stop");
     socket.off("game:ended");
     socket.off("game:compensate");
+    socket.off("refund:timer:start");
+    socket.off("refund:available");
   },
 
   setSelectedUser: async (selectedUser) => {

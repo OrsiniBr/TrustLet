@@ -13,6 +13,16 @@ function toPublic(game) {
     expiresAt: game.expiresAt ? game.expiresAt.toISOString() : null,
     state: game.state,
     winner: game.winner ? String(game.winner) : null,
+    // Refund timer information
+    refundTimerStartedBy: game.refundTimerStartedBy
+      ? String(game.refundTimerStartedBy)
+      : null,
+    refundTimerStartedAt: game.refundTimerStartedAt
+      ? game.refundTimerStartedAt.toISOString()
+      : null,
+    refundTimerExpiresAt: game.refundTimerExpiresAt
+      ? game.refundTimerExpiresAt.toISOString()
+      : null,
     now: new Date().toISOString(),
   };
 }

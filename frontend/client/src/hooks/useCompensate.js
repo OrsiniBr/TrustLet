@@ -12,7 +12,7 @@ const useCompensate = () => {
   // const tokenAddress = import.meta.env.TOKEN_ADDRESS;
 
   return useCallback(
-    async (recipientAddress, snubberAddress) => {
+    async () => {
       if (!address || !isConnected) {
         toast.error("Please connect your wallet");
         return false;
@@ -29,7 +29,7 @@ const useCompensate = () => {
           address: CHAT_ADDRESS,
           abi: CHAT_ABI,
           functionName: "compensate",
-          args: [recipientAddress, snubberAddress],
+          args: [address],
         });
 
         console.log("Compensate hash:", compensateHash);
